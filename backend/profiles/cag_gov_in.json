@@ -1,0 +1,81 @@
+{
+  "base_url": "https://cag.gov.in/",
+  "search_pattern": "https://cag.gov.in/",
+  "requires_js": true,
+  "selectors": {
+    "article_container": [
+      "article",
+      "div[class*=\"article\"]",
+      "div[class*=\"post\"]",
+      "div[class*=\"story\"]",
+      "li[class*=\"item\"]",
+      "div[class*=\"card\"]",
+      "section[class*=\"content\"]",
+      "div[class*=\"entry\"]",
+      "[class*=\"news\"]",
+      "[itemtype*=\"Article\"]"
+    ],
+    "headline": [
+      "h1",
+      "h2",
+      "h3",
+      "h4",
+      "a > h2",
+      "a > h3",
+      "a > h4",
+      "[class*=\"headline\"]",
+      "[class*=\"title\"]",
+      "article h2",
+      "article h3",
+      "div[class*=\"article\"] h2"
+    ],
+    "link": {
+      "selector": "a[href]",
+      "filter_rules": {
+        "min_text_length": 15,
+        "exclude_patterns": [
+          "/tag/",
+          "/category/",
+          "/about",
+          "#"
+        ],
+        "allow_relative": true
+      }
+    },
+    "description": [
+      "p",
+      "div[class*=\"excerpt\"]",
+      "div[class*=\"description\"]",
+      "span[class*=\"summary\"]",
+      "article p:first-of-type"
+    ],
+    "content": [
+      "article",
+      "[class*=\"content\"]",
+      "[class*=\"body\"]",
+      "main",
+      "[role=\"main\"]"
+    ],
+    "metadata": {
+      "date": [
+        "time",
+        "[class*=\"date\"]"
+      ],
+      "author": [
+        "[class*=\"author\"]"
+      ]
+    }
+  },
+  "extraction_strategy": "multi_pass",
+  "deep_scrape": true,
+  "content_cleaning_rules": [
+    "script",
+    "style",
+    "nav",
+    "footer",
+    "header",
+    "aside",
+    "[class*=\"ad\"]",
+    "[class*=\"related\"]"
+  ]
+}

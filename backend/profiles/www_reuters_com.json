@@ -1,0 +1,28 @@
+{
+  "base_url": "https://www.reuters.com/world/",
+  "search_pattern": "https://www.reuters.com/world/",
+  "requires_js": false,
+  "selectors": {
+    "article_container": [
+      "article",
+      "div[class*=\"article\"]",
+      "div[class*=\"post\"]"
+    ],
+    "headline": [
+      "h1",
+      "h2",
+      "h3",
+      "a > h2",
+      "a > h3"
+    ],
+    "link": {
+      "selector": "a[href]",
+      "filter": "article_links"
+    },
+    "description": [
+      "p",
+      "div[class*=\"excerpt\"]"
+    ]
+  },
+  "pagination": null
+}

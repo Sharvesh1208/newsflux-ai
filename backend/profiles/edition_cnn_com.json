@@ -1,0 +1,32 @@
+{
+  "base_url": "https://edition.cnn.com/world",
+  "search_pattern": "https://edition.cnn.com/world/?s=corporate finance",
+  "requires_js": false,
+  "selectors": {
+    "article_container": [
+      "div.header__wrapper-inner",
+      "section.layout__wrapper",
+      "section.layout__main"
+    ],
+    "headline": [
+      "h1.headline__text",
+      "h2.zone__title",
+      "h3.ad-feedback__heading__text",
+      "h1, h2, h3",
+      "[class*=\"headline\"]"
+    ],
+    "link": {
+      "selector": "a[href]",
+      "filter": "article_links",
+      "base_url": "https://edition.cnn.com/world"
+    },
+    "description": [
+      "p",
+      "[class*=\"description\"]",
+      "[class*=\"excerpt\"]",
+      "[class*=\"summary\"]",
+      "[class*=\"snippet\"]"
+    ]
+  },
+  "pagination": null
+}

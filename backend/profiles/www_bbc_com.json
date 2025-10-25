@@ -1,0 +1,31 @@
+{
+  "base_url": "https://www.bbc.com/news",
+  "search_pattern": "https://www.bbc.com/news/?s=finance",
+  "requires_js": false,
+  "selectors": {
+    "article_container": [
+      "section.sc-92527ac1-1",
+      "article.sc-6b2aa73b-0",
+      "div#__next"
+    ],
+    "headline": [
+      "h1, h2, h3",
+      "[class*=\"headline\"]",
+      "[class*=\"title\"]",
+      "a > h1, a > h2, a > h3"
+    ],
+    "link": {
+      "selector": "a[href]",
+      "filter": "article_links",
+      "base_url": "https://www.bbc.com/news"
+    },
+    "description": [
+      "p",
+      "[class*=\"description\"]",
+      "[class*=\"excerpt\"]",
+      "[class*=\"summary\"]",
+      "[class*=\"snippet\"]"
+    ]
+  },
+  "pagination": null
+}

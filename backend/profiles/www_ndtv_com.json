@@ -1,0 +1,31 @@
+{
+  "base_url": "https://www.ndtv.com/world-news",
+  "search_pattern": "https://www.ndtv.com/world-news/?s=corporate finance",
+  "requires_js": false,
+  "selectors": {
+    "article_container": [
+      "article.vjl-Mid-2",
+      "div.vjl-cnt",
+      "div.vjl-cntr"
+    ],
+    "headline": [
+      "h1, h2, h3",
+      "[class*=\"headline\"]",
+      "[class*=\"title\"]",
+      "a > h1, a > h2, a > h3"
+    ],
+    "link": {
+      "selector": "a[href]",
+      "filter": "article_links",
+      "base_url": "https://www.ndtv.com/world-news"
+    },
+    "description": [
+      "p",
+      "[class*=\"description\"]",
+      "[class*=\"excerpt\"]",
+      "[class*=\"summary\"]",
+      "[class*=\"snippet\"]"
+    ]
+  },
+  "pagination": null
+}

@@ -1,0 +1,66 @@
+{
+  "base_url": "https://www.enewspapers.co.in/epaper/the-hindu.html",
+  "search_pattern": "https://www.enewspapers.co.in/epaper/the-hindu.html/?s=finance",
+  "requires_js": false,
+  "selectors": {
+    "article_container": [
+      "article#node-279",
+      "div.field-items",
+      "div.field-item",
+      "div.main-container",
+      "div.row",
+      "article",
+      "div[class*=\"article\"]",
+      "div[class*=\"post\"]"
+    ],
+    "headline": [
+      "h1.page-header",
+      "h1",
+      "h2",
+      "h3",
+      "h4",
+      "a > h1",
+      "a > h2",
+      "a > h3",
+      "[class*=\"headline\"]",
+      "[class*=\"title\"]",
+      "[class*=\"heading\"]",
+      "article h2"
+    ],
+    "link": {
+      "selector": "a[href]",
+      "filter_rules": {
+        "min_text_length": 10,
+        "exclude_patterns": [
+          "/tag/",
+          "/category/",
+          "/author/",
+          "/about",
+          "/contact",
+          "/privacy",
+          "/terms",
+          "#",
+          "javascript:",
+          "mailto:"
+        ],
+        "require_domain": "www.enewspapers.co.in",
+        "allow_relative": true
+      }
+    },
+    "description": [
+      "p",
+      "div[class*=\"excerpt\"]",
+      "div[class*=\"description\"]",
+      "div[class*=\"summary\"]",
+      "span[class*=\"snippet\"]",
+      "div[class*=\"teaser\"]",
+      "[class*=\"desc\"]",
+      "article p",
+      "div[class*=\"article\"] p",
+      "p[class*=\"intro\"]",
+      "div[class*=\"lead\"]"
+    ]
+  },
+  "extraction_strategy": "multi_pass",
+  "deep_scrape": true
+}

@@ -1,0 +1,32 @@
+{
+  "base_url": "https://www.prokabaddi.com/",
+  "search_pattern": "https://www.prokabaddi.com//?s=kabaddi",
+  "requires_js": false,
+  "selectors": {
+    "article_container": [
+      "article.article-item",
+      "section.waf-row",
+      "section.site-content"
+    ],
+    "headline": [
+      "h1.title",
+      "h2.article-title",
+      "h3.article-title",
+      "h4.title",
+      "h1, h2, h3"
+    ],
+    "link": {
+      "selector": "a[href]",
+      "filter": "article_links",
+      "base_url": "https://www.prokabaddi.com/"
+    },
+    "description": [
+      "p",
+      "[class*=\"description\"]",
+      "[class*=\"excerpt\"]",
+      "[class*=\"summary\"]",
+      "[class*=\"snippet\"]"
+    ]
+  },
+  "pagination": null
+}

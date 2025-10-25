@@ -1,0 +1,32 @@
+{
+  "base_url": "https://www.foxnews.com/world",
+  "search_pattern": "https://www.foxnews.com/world/?s=corporate finance",
+  "requires_js": false,
+  "selectors": {
+    "article_container": [
+      "article.article",
+      "section.collection",
+      "div.more-contents"
+    ],
+    "headline": [
+      "h1.title",
+      "h2.title",
+      "h3.title",
+      "h4.more-section-item-title",
+      "h1, h2, h3"
+    ],
+    "link": {
+      "selector": "a[href]",
+      "filter": "article_links",
+      "base_url": "https://www.foxnews.com/world"
+    },
+    "description": [
+      "p",
+      "[class*=\"description\"]",
+      "[class*=\"excerpt\"]",
+      "[class*=\"summary\"]",
+      "[class*=\"snippet\"]"
+    ]
+  },
+  "pagination": null
+}

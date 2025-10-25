@@ -1,0 +1,31 @@
+{
+  "base_url": "https://timesofindia.indiatimes.com/home",
+  "search_pattern": "https://timesofindia.indiatimes.com/home/?s=corporate finance",
+  "requires_js": false,
+  "selectors": {
+    "article_container": [
+      "div#app",
+      "div.nonAppView",
+      "div"
+    ],
+    "headline": [
+      "h1, h2, h3",
+      "[class*=\"headline\"]",
+      "[class*=\"title\"]",
+      "a > h1, a > h2, a > h3"
+    ],
+    "link": {
+      "selector": "a[href]",
+      "filter": "article_links",
+      "base_url": "https://timesofindia.indiatimes.com/home"
+    },
+    "description": [
+      "p",
+      "[class*=\"description\"]",
+      "[class*=\"excerpt\"]",
+      "[class*=\"summary\"]",
+      "[class*=\"snippet\"]"
+    ]
+  },
+  "pagination": null
+}
