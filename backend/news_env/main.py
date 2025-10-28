@@ -18,7 +18,7 @@ from dateutil import parser as date_parser
 
 # 🧠 Import transformer models
 from transformers import pipeline
-
+from fastapi.responses import JSONResponse
 # -----------------------------#
 # Load environment variables
 # -----------------------------#
@@ -604,6 +604,38 @@ async def summarize_article(request: SummarizeRequest):
             status_code=500,
             detail=f"Failed to summarize article: {str(e)}"
         )
+@app.get("/trending")
+async def get_trending_guardian_news():
+    """
+    Fetch trending news from The Guardian Open Platform
+    """
+    try:
+        guardian_api_key = "d17d1e94-0c34-4e45-911a-f3001af19990"
+        url = f"https://content.guardianapis.com/search?order-by=newest&page-size=10&show-fields=trailText,headline,thumbnail&api-key={guardian_api_key}"
+
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, timeout=10) as response:
+                if response.status != 200:
+                    raise Exception(f"Guardian API error: {response.status}")
+                data = await response.json()
+
+        articles = []
+        for item in data.get("response", {}).get("results", []):
+            fields = item.get("fields", {})
+            articles.append({
+                "headline": fields.get("headline", item.get("webTitle")),
+                "url": item.get("webUrl"),
+                "description": fields.get("trailText", ""),
+                "thumbnail": fields.get("thumbnail", ""),
+                "source": "The Guardian",
+                "published_date": item.get("webPublicationDate")
+            })
+
+        return JSONResponse(content={"articles": articles, "count": len(articles)})
+
+    except Exception as e:
+        logger.error(f"❌ Failed to fetch Guardian trending news: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # -----------------------------#
