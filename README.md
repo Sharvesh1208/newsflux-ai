@@ -100,6 +100,11 @@ Shows concise AI-generated summaries for each article.
 Structured article data is stored in MongoDB for persistence and querying.  
 ![Database Screenshot](screenshots/6.png)
 
+### ⚡ 7. Trending News (Real-Time Updates)
+The system continuously fetches and displays trending or breaking news based on live data analysis and keyword frequency.  
+![Trending News Screenshot](screenshots/7.png)
+
+
 
 --
 ## ⚙️ How to Run the Project Locally
