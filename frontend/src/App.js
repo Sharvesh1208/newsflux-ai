@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Globe, Plus, X, AlertCircle, CheckCircle, Loader, TrendingUp, ExternalLink, Sparkles, Zap, ChevronDown, ChevronUp, Filter, BarChart3 } from 'lucide-react';
 import {
   Chart as ChartJS,
@@ -18,21 +18,106 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tool
 const NewsScraperApp = () => {
   const [urls, setUrls] = useState(['https://www.bbc.com']);
   const [filters, setFilters] = useState(['technology']);
-  const [categories, setCategories] = useState(['news']); // New: categories input
+  const [categories, setCategories] = useState(['news']);
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState(null);
   const [error, setError] = useState('');
   const [selectedSource, setSelectedSource] = useState('all');
-  const [selectedSentiment, setSelectedSentiment] = useState('all'); // New: sentiment filter
-  const [selectedCategory, setSelectedCategory] = useState('all'); // New: category filter
+  const [selectedSentiment, setSelectedSentiment] = useState('all');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+
+  // States for ML Analysis and Summarization
   const [summarizing, setSummarizing] = useState({});
   const [summaries, setSummaries] = useState({});
   const [expandedSummaries, setExpandedSummaries] = useState({});
 
+  // States for Trending News
+  const [trendingArticles, setTrendingArticles] = useState([]);
+  const [loadingTrending, setLoadingTrending] = useState(false);
+
+  // --- API FETCH LOGIC ---
+
+  const fetchTrendingNews = async () => {
+    setLoadingTrending(true);
+    try {
+      const response = await fetch("http://localhost:8000/trending");
+      if (!response.ok) throw new Error("Failed to fetch trending news");
+      const data = await response.json();
+
+      // We must preprocess the data to add necessary ML fields (sentiment/category)
+      // Since the Guardian API doesn't provide these, we'll initialize them for consistency.
+      const processedArticles = data.articles.map(article => ({
+          ...article,
+          sentiment: article.sentiment || 'neutral', // Use placeholder or real data if scraping it
+          category: article.category || 'General',
+          relevance_score: article.relevance_score || 500, // Placeholder
+      }));
+      setTrendingArticles(processedArticles);
+    } catch (err) {
+      console.error("Error fetching trending news:", err);
+    } finally {
+      setLoadingTrending(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTrendingNews();
+  }, []);
+
+  const handleSummarize = async (articleUrl, stateKey) => {
+    setSummarizing(prev => ({ ...prev, [stateKey]: true }));
+
+    try {
+      const response = await fetch("http://localhost:8000/summarize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: articleUrl }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Summarization failed');
+      }
+
+      const data = await response.json();
+
+      setSummaries(prev => ({
+        ...prev,
+        [stateKey]: data
+      }));
+
+      setExpandedSummaries(prev => ({
+        ...prev,
+        [stateKey]: true
+      }));
+
+    } catch (err) {
+      setSummaries(prev => ({
+        ...prev,
+        [stateKey]: { error: err.message }
+      }));
+      setExpandedSummaries(prev => ({
+        ...prev,
+        [stateKey]: true
+      }));
+    } finally {
+      setSummarizing(prev => ({ ...prev, [stateKey]: false }));
+    }
+  };
+
+  const toggleSummary = (stateKey) => {
+    setExpandedSummaries(prev => ({
+      ...prev,
+      [stateKey]: !prev[stateKey]
+    }));
+  };
+
+  // --- END OF API FETCH LOGIC ---
+
   const addUrlField = () => setUrls([...urls, '']);
   const addFilterField = () => setFilters([...filters, '']);
-  const addCategoryField = () => setCategories([...categories, '']); // New
+  const addCategoryField = () => setCategories([...categories, '']);
 
   const updateUrl = (index, value) => {
     const newUrls = [...urls];
@@ -46,7 +131,7 @@ const NewsScraperApp = () => {
     setFilters(newFilters);
   };
 
-  const updateCategory = (index, value) => { // New
+  const updateCategory = (index, value) => {
     const newCategories = [...categories];
     newCategories[index] = value;
     setCategories(newCategories);
@@ -64,7 +149,7 @@ const NewsScraperApp = () => {
     }
   };
 
-  const removeCategory = (index) => { // New
+  const removeCategory = (index) => {
     if (categories.length > 1) {
       setCategories(categories.filter((_, i) => i !== index));
     }
@@ -73,7 +158,7 @@ const NewsScraperApp = () => {
   const handleScrape = async () => {
     const validUrls = urls.filter(url => url.trim());
     const validFilters = filters.filter(f => f.trim());
-    const validCategories = categories.filter(c => c.trim()); // New
+    const validCategories = categories.filter(c => c.trim());
 
     if (validUrls.length === 0 || validFilters.length === 0) {
       setError('Please add at least one URL and one filter');
@@ -94,7 +179,7 @@ const NewsScraperApp = () => {
         body: JSON.stringify({
           urls: validUrls,
           filters: validFilters,
-          categories: validCategories, // New
+          categories: validCategories,
           max_results: 30,
           force_refresh: false
         })
@@ -119,57 +204,15 @@ const NewsScraperApp = () => {
     }
   };
 
-  const handleSummarize = async (articleUrl, articleIndex) => {
-    setSummarizing(prev => ({ ...prev, [articleIndex]: true }));
 
-    try {
-      const response = await fetch("http://localhost:8000/summarize", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: articleUrl }),
-      });
+  // --- VISUALIZATION & FILTER DATA CALCULATION ---
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Summarization failed');
-      }
+  // Combine articles and trendingArticles for visualizations
+  const allArticles = [...articles, ...trendingArticles];
 
-      const data = await response.json();
-
-      setSummaries(prev => ({
-        ...prev,
-        [articleIndex]: data
-      }));
-
-      setExpandedSummaries(prev => ({
-        ...prev,
-        [articleIndex]: true
-      }));
-
-    } catch (err) {
-      setSummaries(prev => ({
-        ...prev,
-        [articleIndex]: { error: err.message }
-      }));
-      setExpandedSummaries(prev => ({
-        ...prev,
-        [articleIndex]: true
-      }));
-    } finally {
-      setSummarizing(prev => ({ ...prev, [articleIndex]: false }));
-    }
-  };
-
-  const toggleSummary = (index) => {
-    setExpandedSummaries(prev => ({
-      ...prev,
-      [index]: !prev[index]
-    }));
-  };
-
-  const uniqueSources = [...new Set(articles.map(a => a.source))];
-  const uniqueSentiments = [...new Set(articles.map(a => a.sentiment).filter(s => s))]; // New
-  const uniqueCategories = [...new Set(articles.map(a => a.category).filter(c => c))]; // New
+  const uniqueSources = [...new Set(allArticles.map(a => a.source))];
+  const uniqueSentiments = [...new Set(allArticles.map(a => a.sentiment).filter(s => s))];
+  const uniqueCategories = [...new Set(allArticles.map(a => a.category).filter(c => c))];
 
   let filteredArticles = articles;
   if (selectedSource !== 'all') {
@@ -182,28 +225,181 @@ const NewsScraperApp = () => {
     filteredArticles = filteredArticles.filter(a => a.category === selectedCategory);
   }
 
-  // Visualization data
+  // Visualization data (using allArticles)
   const sourceData = {
     labels: uniqueSources,
     datasets: [{
       label: 'Articles per Source',
-      data: uniqueSources.map(source => articles.filter(a => a.source === source).length),
+      data: uniqueSources.map(source => allArticles.filter(a => a.source === source).length),
       backgroundColor: 'rgba(30, 64, 175, 0.6)',
     }],
   };
 
   const sentimentCounts = {
-    positive: articles.filter(a => a.sentiment === 'positive').length,
-    negative: articles.filter(a => a.sentiment === 'negative').length,
-    neutral: articles.filter(a => a.sentiment === 'neutral').length,
+    positive: allArticles.filter(a => a.sentiment === 'positive').length,
+    negative: allArticles.filter(a => a.sentiment === 'negative').length,
+    neutral: allArticles.filter(a => a.sentiment === 'neutral').length,
+    general: allArticles.filter(a => !a.sentiment || a.sentiment === 'General').length,
   };
 
+  const sentimentLabels = ['Positive', 'Negative', 'Neutral'];
+  const sentimentBackgrounds = ['#10b981', '#ef4444', '#f59e0b'];
+  if (sentimentCounts.general > 0) {
+      sentimentLabels.push('Unanalyzed');
+      sentimentBackgrounds.push('#9ca3af');
+  }
+
   const sentimentData = {
-    labels: ['Positive', 'Negative', 'Neutral'],
+    labels: sentimentLabels,
     datasets: [{
-      data: [sentimentCounts.positive, sentimentCounts.negative, sentimentCounts.neutral],
-      backgroundColor: ['#10b981', '#ef4444', '#f59e0b'],
+      data: [sentimentCounts.positive, sentimentCounts.negative, sentimentCounts.neutral, sentimentCounts.general].filter(count => count > 0),
+      backgroundColor: sentimentBackgrounds.filter((_, index) => [sentimentCounts.positive, sentimentCounts.negative, sentimentCounts.neutral, sentimentCounts.general][index] > 0),
     }],
+  };
+
+  // --- JSX RENDER ---
+
+  const renderSummarySection = (stateKey) => (
+      summaries[stateKey] && (
+        <div className="summary-section">
+          <button
+            onClick={() => toggleSummary(stateKey)}
+            className="summary-toggle"
+          >
+            <span className="summary-toggle-label">
+              <Sparkles className="icon-small" />
+              AI Generated Summary
+            </span>
+            {expandedSummaries[stateKey] ? (
+              <ChevronUp className="icon-small" />
+            ) : (
+              <ChevronDown className="icon-small" />
+            )}
+          </button>
+
+          {expandedSummaries[stateKey] && (
+            <div className="summary-content">
+              {summaries[stateKey].error ? (
+                <div className="summary-error">
+                  <p className="summary-error-title">⚠️ Error:</p>
+                  <p>{summaries[stateKey].error}</p>
+                  <p className="summary-error-tip">
+                    Tip: Make sure the article URL is accessible and contains readable content.
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <p className="summary-text">
+                    {summaries[stateKey].summary}
+                  </p>
+                  <div className="summary-stats">
+                    <span className="summary-stat">
+                      📄 Original: {summaries[stateKey].original_length} chars
+                    </span>
+                    <span className="summary-stat">
+                      ✨ Summary: {summaries[stateKey].summary_length} chars
+                    </span>
+                    <span className="summary-stat">
+                      🎯 Compression: {summaries[stateKey].compression_ratio}%
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )
+  );
+
+  const renderArticleCard = (article, index, prefix) => {
+    const stateKey = `${prefix}-${index}`;
+    return (
+        <article key={stateKey} className="article-card">
+          <div className="article-content">
+
+            {/* Article Header */}
+            <div className="article-header">
+              <div className="article-source-badge">
+                {article.source}
+              </div>
+              {article.relevance_score && article.relevance_score > 0 && (
+                <div className="article-score-badge">
+                  {article.relevance_score >= 1000
+                    ? `${(article.relevance_score / 1000).toFixed(1)}k`
+                    : article.relevance_score}★
+                </div>
+              )}
+              {article.sentiment && (
+                <div className={`article-sentiment-badge ${article.sentiment}`}>
+                  {article.sentiment.charAt(0).toUpperCase() + article.sentiment.slice(1)}
+                </div>
+              )}
+              {article.category && (
+                <div className="article-category-badge">
+                  {article.category}
+                </div>
+              )}
+            </div>
+
+            {/* Thumbnail for Trending News */}
+            {prefix === 'T' && article.thumbnail && (
+              <img src={article.thumbnail} alt="thumbnail" style={{ width: '100%', borderRadius: '6px', marginBottom: '10px' }} />
+            )}
+
+            {/* Article Title */}
+            <a
+              href={article.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="article-link"
+            >
+              <h3 className="article-title">
+                {article.headline}
+                <ExternalLink className="article-external-icon" />
+              </h3>
+            </a>
+
+            {/* Article Description */}
+            {article.description && (
+              <p className="article-description" dangerouslySetInnerHTML={{ __html: article.description }} />
+            )}
+
+            {/* Action Buttons */}
+            <div className="article-actions">
+              <a
+                href={article.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="action-button primary"
+              >
+                <ExternalLink className="icon-small" />
+                Read Article
+              </a>
+
+              <button
+                onClick={() => handleSummarize(article.url, stateKey)}
+                disabled={summarizing[stateKey]}
+                className="action-button secondary"
+              >
+                {summarizing[stateKey] ? (
+                  <>
+                    <Loader className="icon-small animate-spin" />
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="icon-small" />
+                    AI Summary
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Summary Display */}
+            {renderSummarySection(stateKey)}
+          </div>
+        </article>
+  );
   };
 
   return (
@@ -309,7 +505,7 @@ const NewsScraperApp = () => {
             <div className="input-column">
               <h3 className="section-title">
                 <Filter className="icon-small" />
-                Categories
+                Categories (For ML)
               </h3>
               {categories.map((category, index) => (
                 <div key={index} className="input-row">
@@ -387,11 +583,11 @@ const NewsScraperApp = () => {
         )}
 
         {/* Visualizations */}
-        {articles.length > 0 && (
+        {allArticles.length > 0 && (
           <div className="visualization-section">
             <h3 className="section-title">
               <BarChart3 className="icon-small" />
-              Data Visualizations
+              Data Visualizations (Total Articles)
             </h3>
             <div className="charts-grid">
               <div className="chart-container">
@@ -406,8 +602,43 @@ const NewsScraperApp = () => {
           </div>
         )}
 
-        {/* Filters */}
-        {articles.length > 0 && (
+        {/* --- GUARDIAN TRENDING NEWS SECTION (with Summary/ML logic) --- */}
+        <div style={{ marginTop: '40px', padding: '20px', backgroundColor: '#f9fafb', borderRadius: '12px' }}>
+            <h3 style={{ fontSize: '1.5rem', marginBottom: '10px', display: 'flex', alignItems: 'center' }}>
+                <TrendingUp style={{ marginRight: '8px' }} />
+                **Trending News from The Guardian**
+            </h3>
+            <button
+                onClick={fetchTrendingNews}
+                disabled={loadingTrending}
+                style={{
+                    padding: '10px 16px',
+                    backgroundColor: '#1d4ed8',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    marginBottom: '20px',
+                    fontWeight: 'bold'
+                }}
+            >
+                {loadingTrending ? 'Loading Trending News...' : 'Refresh Trending News'}
+            </button>
+
+            {trendingArticles.length > 0 && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
+                    {trendingArticles.map((article, index) => (
+                        // Render using the reusable card component with prefix 'T'
+                        renderArticleCard(article, index, 'T')
+                    ))}
+                </div>
+            )}
+        </div>
+        {/* --- END OF GUARDIAN TRENDING NEWS SECTION --- */}
+
+
+        {/* Filters (Applicable mostly to the Manual Scrape results + Trending) */}
+        {allArticles.length > 0 && (
           <>
             {/* Source Filter */}
             <div className="filter-section">
@@ -428,7 +659,7 @@ const NewsScraperApp = () => {
                     onClick={() => setSelectedSource(source)}
                     className={`filter-button ${selectedSource === source ? 'active' : ''}`}
                   >
-                    {source} ({articles.filter(a => a.source === source).length})
+                    {source} ({allArticles.filter(a => a.source === source).length})
                   </button>
                 ))}
               </div>
@@ -447,13 +678,13 @@ const NewsScraperApp = () => {
                 >
                   All
                 </button>
-                {['positive', 'negative', 'neutral'].map(sentiment => (
+                {['positive', 'negative', 'neutral', 'General'].map(sentiment => (
                   <button
                     key={sentiment}
                     onClick={() => setSelectedSentiment(sentiment)}
                     className={`filter-button ${selectedSentiment === sentiment ? 'active' : ''}`}
                   >
-                    {sentiment.charAt(0).toUpperCase() + sentiment.slice(1)} ({articles.filter(a => a.sentiment === sentiment).length})
+                    {sentiment.charAt(0).toUpperCase() + sentiment.slice(1)} ({allArticles.filter(a => a.sentiment === sentiment).length})
                   </button>
                 ))}
               </div>
@@ -478,7 +709,7 @@ const NewsScraperApp = () => {
                     onClick={() => setSelectedCategory(category)}
                     className={`filter-button ${selectedCategory === category ? 'active' : ''}`}
                   >
-                    {category} ({articles.filter(a => a.category === category).length})
+                    {category} ({allArticles.filter(a => a.category === category).length})
                   </button>
                 ))}
               </div>
@@ -486,144 +717,16 @@ const NewsScraperApp = () => {
           </>
         )}
 
-        {/* Articles Grid */}
+        {/* Articles Grid (Manual Scrape Results) */}
         <div className="articles-grid">
           {filteredArticles.map((article, index) => (
-            <article key={index} className="article-card">
-              <div className="article-content">
-
-                {/* Article Header */}
-                <div className="article-header">
-                  <div className="article-source-badge">
-                    {article.source}
-                  </div>
-                  {article.relevance_score && article.relevance_score > 0 && (
-                    <div className="article-score-badge">
-                      {article.relevance_score >= 1000
-                        ? `${(article.relevance_score / 1000).toFixed(1)}k`
-                        : article.relevance_score}★
-                    </div>
-                  )}
-                  {article.sentiment && (
-                    <div className={`article-sentiment-badge ${article.sentiment}`}>
-                      {article.sentiment.charAt(0).toUpperCase() + article.sentiment.slice(1)}
-                    </div>
-                  )}
-                  {article.category && (
-                    <div className="article-category-badge">
-                      {article.category}
-                    </div>
-                  )}
-                </div>
-
-                {/* Article Title */}
-                <a
-                  href={article.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="article-link"
-                >
-                  <h3 className="article-title">
-                    {article.headline}
-                    <ExternalLink className="article-external-icon" />
-                  </h3>
-                </a>
-
-                {/* Article Description */}
-                {article.description && (
-                  <p className="article-description">
-                    {article.description}
-                  </p>
-                )}
-
-                {/* Action Buttons */}
-                <div className="article-actions">
-                  <a
-                    href={article.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="action-button primary"
-                  >
-                    <ExternalLink className="icon-small" />
-                    Read Article
-                  </a>
-
-                  <button
-                    onClick={() => handleSummarize(article.url, index)}
-                    disabled={summarizing[index]}
-                    className="action-button secondary"
-                  >
-                    {summarizing[index] ? (
-                      <>
-                        <Loader className="icon-small animate-spin" />
-                        Analyzing...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="icon-small" />
-                        AI Summary
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                {/* Summary Display */}
-                {summaries[index] && (
-                  <div className="summary-section">
-                    <button
-                      onClick={() => toggleSummary(index)}
-                      className="summary-toggle"
-                    >
-                      <span className="summary-toggle-label">
-                        <Sparkles className="icon-small" />
-                        AI Generated Summary
-                      </span>
-                      {expandedSummaries[index] ? (
-                        <ChevronUp className="icon-small" />
-                      ) : (
-                        <ChevronDown className="icon-small" />
-                      )}
-                    </button>
-
-                    {expandedSummaries[index] && (
-                      <div className="summary-content">
-                        {summaries[index].error ? (
-                          <div className="summary-error">
-                            <p className="summary-error-title">⚠️ Error:</p>
-                            <p>{summaries[index].error}</p>
-                            <p className="summary-error-tip">
-                              Tip: Make sure the article URL is accessible and contains readable content.
-                            </p>
-                          </div>
-                        ) : (
-                          <div>
-                            <p className="summary-text">
-                              {summaries[index].summary}
-                            </p>
-                            <div className="summary-stats">
-                              <span className="summary-stat">
-                                📄 Original: {summaries[index].original_length} chars
-                              </span>
-                              <span className="summary-stat">
-                                ✨ Summary: {summaries[index].summary_length} chars
-                              </span>
-                              <span className="summary-stat">
-                                🎯 Compression: {summaries[index].compression_ratio}%
-                              </span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </article>
+            // Render using the reusable card component with prefix 'A'
+            renderArticleCard(article, index, 'A')
           ))}
         </div>
 
         {/* Empty State */}
-        {!loading && articles.length === 0 && !error && (
+        {!loading && articles.length === 0 && !error && trendingArticles.length === 0 && (
           <div className="empty-state">
             <div className="empty-state-icon">
               <Globe className="icon-xlarge" />
