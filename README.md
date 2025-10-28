@@ -111,10 +111,13 @@ cd news_env
 pip install -r requirements.txt
 uvicorn main:app --reload
 
-**Frontend**
-cd frontend
+# Install dependencies (you can use either)
 npm install
+# or
 pnpm install
+npm start
+# or
+pnpm start
 
-### 🧠 High-Level Data Flow Diagram
+
 
