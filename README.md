@@ -73,16 +73,6 @@ The **NewsFlux AI** architecture is designed for **real-time scraping, intellige
    - Instead of predefined APIs, users can **search specific topics directly** from their preferred news sources.
    - This approach reduces model complexity while allowing **real-time query and comparison**.
 
-## 🏗️ Data Architecture
-
-graph TD
-A[📰 News Websites<br>(BBC, CNN, TechCrunch)] -->|Scraped via Backend APIs| B[⚙️ FastAPI Server]
-B -->|Performs NLP Processing| C[🧠 Sentiment & Category Analysis]
-B -->|Generates| D[🗞️ AI Summaries]
-B -->|Stores Cleaned Data| E[(🧩 MongoDB Database)]
-E -->|Feeds To| F[💻 React Frontend Dashboard]
-F -->|Displays| G[📊 Charts, Filters, & Summaries]
-
 
 ## 📷 Demo Screenshots
 
