@@ -111,6 +111,8 @@ cd news_env
 pip install -r requirements.txt
 uvicorn main:app --reload
 
+--
+Frontend:
 # Install dependencies (you can use either)
 npm install
 # or
